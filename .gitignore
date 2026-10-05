@@ -1,0 +1,11 @@
+.DS_Store
+__pycache__/
+*.pyc
+.env
+.venv/
+.vscode/
+# runtime data is regenerated on first run (the seed is fixed, so every machine gets the same interns)
+data/*.json
+data/*.log
+data/*.tmp
+data/*.corrupt-*
