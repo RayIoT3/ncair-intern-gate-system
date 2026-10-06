@@ -1,0 +1,123 @@
+"""Design tokens for the NCAIR Intern Gate app, copied from the HTML mockup.
+
+Colours are (light, dark) pairs, which CustomTkinter accepts directly, so
+widgets switch theme with ctk.set_appearance_mode("light" | "dark").
+Font-size tokens are shared base units; CustomTkinter scales them for display DPI.
+"""
+from tkinter import ttk
+
+import customtkinter as ctk
+
+BG      = ("#F1F2F6", "#000000")   # window background
+SURFACE = ("#FFFFFF", "#1D1E21")   # cards
+TEXT    = ("#252C58", "#E8E8E8")
+MUTED   = ("#6B7194", "#9A9AA0")
+BORDER  = ("#D5D9DD", "#4B4B4B")
+CHIP    = ("#E6EAF5", "#2A2C31")   # idle boxes, secondary buttons
+PRIMARY, PRIMARY_HOVER = "#0043FF", "#4B74FF"
+PRIMARY_TEXT = ("#0043FF", "#6FA3FF")   # blue text: lighter in dark mode
+
+# kind -> (background, text). Keep the pale backgrounds in dark mode too,
+# exactly as the mockup does, so the text contrast stays high.
+STATUS = {
+    "idle": (CHIP, MUTED),
+    "ok":   ("#E4F6EC", "#0E6B3B"),
+    "er":   ("#FFE5EE", "#AA0000"),
+    "wa":   ("#FFF8E7", "#8A6D00"),
+    "in":   ("#E6EFFC", "#0764E6"),
+    "out":  ("#EFEFEF", "#252C58"),
+}
+
+RADIUS = 5
+FAMILY = "Segoe UI"
+FONT_SIZE = {
+    "caption": 12,
+    "small": 13,
+    "body": 14,
+    "section": 16,
+    "title": 24,
+    "metric": 38,
+}
+SPACE = {"xs": 4, "sm": 8, "md": 12, "lg": 16, "xl": 20}
+
+
+def scale(widget):
+    """Display scaling (1.0 = 100%, 1.25 = 125%, ...).
+
+    Tk reports window and event sizes in real pixels, while every CustomTkinter size, font and
+    wraplength is in scaled units. Divide a pixel width by this before comparing it with a breakpoint.
+    """
+    for get in (lambda: ctk.ScalingTracker.get_widget_scaling(widget), lambda: widget._get_widget_scaling()):
+        try:
+            return float(get())
+        except Exception:
+            pass
+    return 1.0
+
+
+def font(size=FONT_SIZE["body"], bold=False):
+    return ctk.CTkFont(family=FAMILY, size=size, weight="bold" if bold else "normal")
+
+
+def card(parent):
+    return ctk.CTkFrame(parent, fg_color=SURFACE, border_color=BORDER,
+                        border_width=1, corner_radius=RADIUS)
+
+
+def label(parent, text, size=FONT_SIZE["body"], bold=False, color=TEXT, **kw):
+    return ctk.CTkLabel(parent, text=text, font=font(size, bold), text_color=color,
+                        anchor="w", justify="left", **kw)
+
+
+def primary_button(parent, text, command):
+    return ctk.CTkButton(parent, text=text, command=command, height=44,
+                         corner_radius=RADIUS, font=font(FONT_SIZE["body"], True),
+                         fg_color=PRIMARY, hover_color=PRIMARY_HOVER, text_color="#FFFFFF")
+
+
+def secondary_button(parent, text, command):
+    return ctk.CTkButton(parent, text=text, command=command, height=44,
+                         corner_radius=RADIUS, font=font(FONT_SIZE["body"], True),
+                         fg_color=CHIP, hover_color=BORDER, text_color=TEXT)
+
+
+def entry(parent, placeholder):
+    return ctk.CTkEntry(parent, placeholder_text=placeholder, height=44,
+                        corner_radius=RADIUS, border_width=1, border_color=BORDER,
+                        fg_color=SURFACE, text_color=TEXT,
+                        placeholder_text_color=MUTED, font=font(FONT_SIZE["body"] + 2))
+
+
+def pill(parent, kind, text):
+    bg, fg = STATUS[kind]
+    return ctk.CTkLabel(parent, text=text, width=46, height=24, corner_radius=3,
+                        fg_color=bg, text_color=fg, font=font(FONT_SIZE["small"]))
+
+
+def flow(parent, widgets, cols, gap=SPACE["lg"]):
+    """Grid `widgets` in `cols` equal columns. Call again with a new `cols` to re-flow."""
+    for c in range(20):
+        parent.columnconfigure(c, weight=0, uniform="")
+    parent.columnconfigure(tuple(range(cols)), weight=1, uniform="flow")
+    for i, w in enumerate(widgets):
+        w.grid_forget()
+        w.grid(row=i // cols, column=i % cols, sticky="new", pady=(0, gap),
+               padx=(0 if i % cols == 0 else gap // 2, 0 if i % cols == cols - 1 else gap // 2))
+
+
+def style_treeview(tree=None):
+    """Theme ttk.Treeview for the current light/dark mode; call again after a mode change."""
+    d = 1 if ctk.get_appearance_mode() == "Dark" else 0
+    k = scale(tree) if tree is not None else 1.0        # ttk sizes are real pixels: scale them ourselves
+    s = ttk.Style()
+    s.theme_use("clam")
+    s.configure("Gate.Treeview", background=SURFACE[d], fieldbackground=SURFACE[d], foreground=TEXT[d],
+                rowheight=round(46 * k), borderwidth=0, font=(FAMILY, -round(14 * k)))
+    s.configure("Gate.Treeview.Heading", background=SURFACE[d], foreground=MUTED[d], relief="flat",
+                borderwidth=0, padding=(round(6 * k), round(8 * k)), font=(FAMILY, -round(13 * k)))
+    s.map("Gate.Treeview", background=[("selected", CHIP[d])], foreground=[("selected", TEXT[d])])
+    s.map("Gate.Treeview.Heading", background=[("active", SURFACE[d])])
+    s.layout("Gate.Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
+    if tree is not None:
+        tree.tag_configure("in", foreground=("#0764E6", "#6FA3FF")[d])
+        tree.tag_configure("out", foreground=MUTED[d])
