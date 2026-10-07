@@ -18,7 +18,6 @@ PAGES = [("Gate", GateScreen, True), ("Dashboard", DashboardScreen, True),
          ("Interns", InternsScreen, False), ("Cards", CardsScreen, False),
          ("AI Report", AIScreen, True)]   # True = scrolls
 
-
 def _dark_logo(source):
     """Lighten the logo's black lettering for dark mode while preserving its green mark."""
     pixels = []
@@ -30,6 +29,7 @@ def _dark_logo(source):
     logo = source.copy()
     logo.putdata(pixels)
     return logo
+
 
 def initial_window_size(screen_width, screen_height, scale):
     """Choose the normal window size, capped to the scaled usable screen area."""
@@ -215,19 +215,19 @@ class App(ctk.CTk):
         ctk.set_appearance_mode("light" if ctk.get_appearance_mode() == "Dark" else "dark")
         self.show(self.current)
 
-        def _apply_native_titlebar(self):
-            if not hasattr(ctypes, "windll"):
-                return
-            get_parent = ctypes.windll.user32.GetParent
-            get_parent.argtypes = (ctypes.c_void_p,)
-            get_parent.restype = ctypes.c_void_p
-            hwnd = get_parent(self.winfo_id())
-            set_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
-            set_attribute.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint)
-            for attribute, color in ((35, 0x356A0F), (34, 0x356A0F), (36, 0xFFFFFF)):
-                value = ctypes.c_int(color)
-                set_attribute(hwnd, attribute, ctypes.byref(value), ctypes.sizeof(value))
-                
+    def _apply_native_titlebar(self):
+        if not hasattr(ctypes, "windll"):
+            return
+        get_parent = ctypes.windll.user32.GetParent
+        get_parent.argtypes = (ctypes.c_void_p,)
+        get_parent.restype = ctypes.c_void_p
+        hwnd = get_parent(self.winfo_id())
+        set_attribute = ctypes.windll.dwmapi.DwmSetWindowAttribute
+        set_attribute.argtypes = (ctypes.c_void_p, ctypes.c_uint, ctypes.c_void_p, ctypes.c_uint)
+        for attribute, color in ((35, 0x356A0F), (34, 0x356A0F), (36, 0xFFFFFF)):
+            value = ctypes.c_int(color)
+            set_attribute(hwnd, attribute, ctypes.byref(value), ctypes.sizeof(value))
+
     def _tick(self):
         now = datetime.now()
         self.clock.configure(text=now.strftime("%H:%M:%S"))
