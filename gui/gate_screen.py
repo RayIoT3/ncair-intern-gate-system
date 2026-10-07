@@ -26,6 +26,8 @@ class GateScreen(ctk.CTkFrame):
         self._hint_wrap = self._msg_wrap = None
         self.candidates: List[GateCandidate] = []
         self.suggestion_rows = {}
+        self._suggestion_pool = []
+        self._search_job = None
         self.selected_id = None
         self._build_form()
         self._build_activity()
@@ -39,7 +41,7 @@ class GateScreen(ctk.CTkFrame):
         theme.label(self.form, "Find an intern", 13, True).pack(fill="x", padx=20)
         self.entry = theme.entry(self.form, "Roster number, name, or intern ID")
         self.entry.pack(fill="x", padx=20, pady=(6, 0))
-        self.entry.bind("<KeyRelease>", self._search)
+        self.entry.bind("<KeyRelease>", self._queue_search)
         self.entry.bind("<Return>", self._select_single_match)
         self.hint = theme.label(self.form, "Type to see matching interns.", 13, color=theme.MUTED)
         self.hint.pack(fill="x", padx=20, pady=(6, 0))
@@ -84,6 +86,9 @@ class GateScreen(ctk.CTkFrame):
 
     # ---- behaviour -----------------------------------------------------
     def _search(self, _event=None):
+        if self._search_job is not None:
+            self.after_cancel(self._search_job)
+        self._search_job = None
         query = self.entry.get().strip()
         self._clear_selection()
 
@@ -114,60 +119,61 @@ class GateScreen(ctk.CTkFrame):
             noun = "match" if count == 1 else "matches"
             self.hint.configure(text=f"{count} {noun} \u00b7 select the correct intern")
 
-        for candidate in visible:
+        for index, candidate in enumerate(visible):
             intern_id, name, programme, serial_number, inside, card_id = candidate
             state = "Inside" if inside else "Outside"
             card = f" \u00b7 card #{card_id}" if card_id else ""
             roster_number = f"Roster no. {serial_number} \u00b7 " if serial_number else ""
 
-            row = ctk.CTkFrame(
-                self.matches,
-                fg_color=theme.CHIP,
-                corner_radius=theme.RADIUS,
-            )
+            if index == len(self._suggestion_pool):
+                row = ctk.CTkFrame(self.matches, fg_color=theme.CHIP, corner_radius=theme.RADIUS)
+                name_button = ctk.CTkButton(
+                    row, anchor="w", height=28, corner_radius=theme.RADIUS,
+                    font=theme.font(13), fg_color="transparent",
+                )
+                name_button.pack(fill="x", padx=3, pady=(3, 0))
+                details = theme.label(row, "", 13, color=theme.TEXT, height=22)
+                details.pack(fill="x", padx=11, pady=(0, 3))
+                self._suggestion_pool.append((row, name_button, details))
+            row, name_button, details = self._suggestion_pool[index]
+            row.configure(fg_color=theme.CHIP)
+            name_button.configure(
+                text=f"{name}  \u00b7  {intern_id}", text_color=theme.TEXT,
+                hover_color=theme.BORDER, command=lambda iid=intern_id: self._select(iid))
+            details.configure(text=f"{roster_number}{programme} \u00b7 {state}{card}",
+                              text_color=theme.TEXT)
             row.pack(fill="x", pady=2)
-
-            # Keep each line in its own left-anchored widget; multiline button text
-            # is centered line-by-line by Tk and gives the result uneven indentation.
-            name_button = ctk.CTkButton(
-                row,
-                text=f"{name}  \u00b7  {intern_id}",
-                anchor="w",
-                height=28,
-                corner_radius=theme.RADIUS,
-                font=theme.font(13),
-                text_color=theme.TEXT,
-                fg_color="transparent",
-                hover_color=theme.BORDER,
-                command=lambda iid=intern_id: self._select(iid),
-            )
-            name_button.pack(fill="x", padx=3, pady=(3, 0))
-
-            details = theme.label(
-                row,
-                f"{roster_number}{programme} \u00b7 {state}{card}",
-                13,
-                color=theme.TEXT,
-                height=22,
-            )
-            details.pack(fill="x", padx=11, pady=(0, 3))
-            details.bind("<Button-1>", lambda _event, iid=intern_id: self._select(iid))
             row.bind("<Button-1>", lambda _event, iid=intern_id: self._select(iid))
-
+            details.bind("<Button-1>", lambda _event, iid=intern_id: self._select(iid))
             self.suggestion_rows[intern_id] = (row, name_button, details)
+
+    def _queue_search(self, _event=None):
+        if self._search_job is not None:
+            self.after_cancel(self._search_job)
+        self.selected_id = None
+        self._set_actions_enabled(False, False)
+        self._search_job = self.after(120, self._run_queued_search)
+
+    def _run_queued_search(self):
+        self._search_job = None
+        self._search()
 
     def _clear_selection(self, reset_message=True):
         self.selected_id = None
         self.candidates = []
         self.suggestion_rows = {}
         self._set_actions_enabled(False, False)
-        for widget in self.matches.winfo_children():
-            widget.destroy()
+        for row, _, _ in self._suggestion_pool:
+            row.pack_forget()
         self.matches.configure(height=0)
         if reset_message:
             self._say("idle", "Ready", "Search by roster number, name, full ID, or the last 3 ID digits.")
 
     def _select_single_match(self, _event=None):
+        if self._search_job is not None:
+            self.after_cancel(self._search_job)
+            self._search_job = None
+            self._search()
         if len(self.candidates) == 1:
             self._select(self.candidates[0][0])
 
