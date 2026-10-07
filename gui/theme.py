@@ -1,4 +1,4 @@
-"""Design tokens for the NCAIR Intern Gate app, copied from the HTML mockup.
+"""NCAIR-inspired design tokens for the Intern Gate app.
 
 Colours are (light, dark) pairs, which CustomTkinter accepts directly, so
 widgets switch theme with ctk.set_appearance_mode("light" | "dark").
@@ -8,14 +8,14 @@ from tkinter import ttk
 
 import customtkinter as ctk
 
-BG      = ("#F1F2F6", "#000000")   # window background
-SURFACE = ("#FFFFFF", "#1D1E21")   # cards
-TEXT    = ("#252C58", "#E8E8E8")
-MUTED   = ("#6B7194", "#9A9AA0")
-BORDER  = ("#D5D9DD", "#4B4B4B")
-CHIP    = ("#E6EAF5", "#2A2C31")   # idle boxes, secondary buttons
-PRIMARY, PRIMARY_HOVER = "#0043FF", "#4B74FF"
-PRIMARY_TEXT = ("#0043FF", "#6FA3FF")   # blue text: lighter in dark mode
+BG      = ("#F6F8F4", "#101812")   # NCAIR pale green, deep green-tinted dark mode
+SURFACE = ("#FFFFFF", "#1C241F")   # cards
+TEXT    = ("#143126", "#E8F0E9")
+MUTED   = ("#4A6658", "#A8B6AC")
+BORDER  = ("#DCE6DD", "#3C4A40")
+CHIP    = ("#EEF5EF", "#263229")   # idle boxes, secondary buttons
+PRIMARY, PRIMARY_HOVER = "#0F6A35", "#0A592C"
+PRIMARY_TEXT = ("#0F6A35", "#79D99A")
 
 # kind -> (background, text). Keep the pale backgrounds in dark mode too,
 # exactly as the mockup does, so the text contrast stays high.
@@ -24,8 +24,9 @@ STATUS = {
     "ok":   ("#E4F6EC", "#0E6B3B"),
     "er":   ("#FFE5EE", "#AA0000"),
     "wa":   ("#FFF8E7", "#8A6D00"),
-    "in":   ("#E6EFFC", "#0764E6"),
-    "out":  ("#EFEFEF", "#252C58"),
+    "in":   (("#ECF8EF", "#203A29"), ("#0A592C", "#8DDCA7")),
+    "out":  (("#EFEFEF", "#2A302C"), TEXT),
+
 }
 
 RADIUS = 5
@@ -119,5 +120,5 @@ def style_treeview(tree=None):
     s.map("Gate.Treeview.Heading", background=[("active", SURFACE[d])])
     s.layout("Gate.Treeview", [("Treeview.treearea", {"sticky": "nswe"})])
     if tree is not None:
-        tree.tag_configure("in", foreground=("#0764E6", "#6FA3FF")[d])
+        tree.tag_configure("in", foreground=("#0F6A35", "#8DDCA7")[d])
         tree.tag_configure("out", foreground=MUTED[d])

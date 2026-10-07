@@ -21,6 +21,7 @@ class InternsScreen(ctk.CTkFrame):
         super().__init__(parent, fg_color="transparent")
         self.service, self.status = service, "all"
         self._narrow = self._compact_toolbar = None
+        self._search_job = None
         box = theme.card(self)
         box.pack(fill="both", expand=True)
 
@@ -29,7 +30,7 @@ class InternsScreen(ctk.CTkFrame):
         bar.columnconfigure(0, weight=1)
         self.search = theme.entry(bar, "Search roster no., name or ID")
         self.search.grid(row=0, column=0, sticky="ew")
-        self.search.bind("<KeyRelease>", lambda e: self.refresh())
+        self.search.bind("<KeyRelease>", self._queue_search_refresh)
         self.tabs_frame = ctk.CTkFrame(bar, fg_color="transparent")
         self.tabs = {}
         for key, text in (("all", "All"), ("in", "Inside"), ("out", "Outside")):
@@ -81,10 +82,7 @@ class InternsScreen(ctk.CTkFrame):
         theme.label(box, "Add the intern's details to the gate roster.", 13,
                     color=theme.MUTED).pack(fill="x", padx=20, pady=(0, 16))
 
-        form = ctk.CTkScrollableFrame(
-            box, fg_color="transparent", corner_radius=0,
-            scrollbar_button_color=theme.BORDER,
-            scrollbar_button_hover_color=theme.MUTED)
+        form = ctk.CTkScrollableFrame(box, fg_color="transparent", corner_radius=0)
         form.pack(fill="both", expand=True)
         fields = {}
         for key, label, placeholder in FORM_FIELDS:
@@ -173,6 +171,15 @@ class InternsScreen(ctk.CTkFrame):
         self.status = key
         self.refresh()
 
+    def _queue_search_refresh(self, _event=None):
+        if self._search_job is not None:
+            self.after_cancel(self._search_job)
+        self._search_job = self.after(120, self._run_search_refresh)
+
+    def _run_search_refresh(self):
+        self._search_job = None
+        self.refresh()
+
     def _on_resize(self, e):
         width = e.width / theme.scale(self)                    # pixels -> scaled units
         narrow = width < 640
@@ -215,12 +222,13 @@ class InternsScreen(ctk.CTkFrame):
             return
         fractions = {"serial": 0.08, "id": 0.19, "intern": 0.24, "type": 0.10,
                      "status": 0.15, "card": 0.09, "since": 0.15}
-        if self._narrow:
-            fractions = {"serial": 0.15, "intern": 0.43, "status": 0.24, "card": 0.18}
         for key, fraction in fractions.items():
             self.tree.column(key, width=max(round(60 * scale), round(width * fraction)))
 
     def refresh(self):
+        if self._search_job is not None:
+            self.after_cancel(self._search_job)
+            self._search_job = None
         theme.style_treeview(self.tree)
         for key, b in self.tabs.items():
             on = key == self.status

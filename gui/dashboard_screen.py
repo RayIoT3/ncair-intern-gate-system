@@ -58,26 +58,31 @@ class DashboardScreen(ctk.CTkFrame):
         w = e.width / theme.scale(self)                       # pixels -> scaled units
         kc = max(1, min(4, int(w + 16) // 166))               # mockup: auto-fit, 150px min, 16px gaps
         lc = 2 if w >= 656 else 1
-        if (kc, lc) != self._layout:
-            self._layout = (kc, lc)
+        previous = self._layout
+        if (kc, lc) == previous:
+            return
+        self._layout = (kc, lc)
+        if previous is None or kc != previous[0]:
             theme.flow(self.kpi_row, [k[0] for k in self.kpis], kc)
+        if previous is None or lc != previous[1]:
             theme.flow(self.lower, [self.occ, self.cardbox], lc)
 
         stacked = w < 656
-        if lc == 2:
-            self.lower.rowconfigure(0, weight=1, uniform="dashboard-cards")
-            height = round(max(self.occ.winfo_reqheight(), self.cardbox.winfo_reqheight())
-                           / theme.scale(self))
-            for card in (self.occ, self.cardbox):
-                card.grid_propagate(False)
-                card.configure(height=height)
-                card.grid_configure(sticky="nsew")
-        else:
-            self.lower.rowconfigure(0, weight=0, uniform="")
-            self.lower.rowconfigure(1, weight=0, uniform="")
-            for card in (self.occ, self.cardbox):
-                card.grid_propagate(True)
-                card.grid_configure(sticky="new")
+        if previous is None or lc != previous[1]:
+            if lc == 2:
+                self.lower.rowconfigure(0, weight=1, uniform="dashboard-cards")
+                height = round(max(self.occ.winfo_reqheight(), self.cardbox.winfo_reqheight())
+                               / theme.scale(self))
+                for card in (self.occ, self.cardbox):
+                    card.grid_propagate(False)
+                    card.configure(height=height)
+                    card.grid_configure(sticky="nsew")
+            else:
+                self.lower.rowconfigure(0, weight=0, uniform="")
+                self.lower.rowconfigure(1, weight=0, uniform="")
+                for card in (self.occ, self.cardbox):
+                    card.grid_propagate(True)
+                    card.grid_configure(sticky="new")
 
         if stacked != self._weather_stacked:
             self._weather_stacked = stacked

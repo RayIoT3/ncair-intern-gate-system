@@ -124,7 +124,7 @@ class CardsScreen(ctk.CTkFrame):
         widths = (("card", 52), ("status", 82), ("holder", 120)) if narrow else \
             (("card", 80), ("status", 120), ("holder", 190), ("name", 180), ("assigned", 150))
         for key, width in widths:
-            self.tree.column(key, width=round(width * scale), minwidth=round(width * scale),
+            self.tree.column(key, width=round(width * scale),
                              stretch=key == "holder" if narrow else key in ("name", "holder"))
 
     def refresh(self):

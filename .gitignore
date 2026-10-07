@@ -8,4 +8,4 @@ data/*.json
 data/*.log
 data/*.tmp
 data/*.corrupt-*
-. DS_Store
+.DS_Store
